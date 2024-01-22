@@ -1,0 +1,10 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3"
+  }
+}
