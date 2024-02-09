@@ -12,8 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Get = exports.HttpError = void 0;
+exports.CreateFolderIfNotExist = exports.DownloadFile = exports.Get = exports.HttpError = void 0;
 const axios_1 = __importDefault(require("axios"));
+const fs_1 = require("fs");
+const promises_1 = require("fs/promises");
 class HttpError extends Error {
     constructor(status, body) {
         super();
@@ -36,4 +38,17 @@ function Get(url, responseType) {
     });
 }
 exports.Get = Get;
-//# sourceMappingURL=HttpRequest.js.map
+function DownloadFile(url, outDir, filename) {
+    return __awaiter(this, void 0, void 0, function* () {
+        CreateFolderIfNotExist(outDir);
+        const [buffer, err] = yield Get(url, "arraybuffer");
+        if (err)
+            return err;
+        yield (0, promises_1.writeFile)(`${outDir}/${filename}`, new Uint8Array(buffer));
+    });
+}
+exports.DownloadFile = DownloadFile;
+function CreateFolderIfNotExist(path) {
+    (0, fs_1.mkdirSync)(path, { recursive: true });
+}
+exports.CreateFolderIfNotExist = CreateFolderIfNotExist;

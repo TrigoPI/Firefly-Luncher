@@ -3,32 +3,23 @@ import serviceConf from "../../../conf/service.conf.json";
 import appConf from "../../../conf/app.conf.json"
 
 
+import { existsSync } from "fs";
 import { copyFile, readdir, rm } from "fs/promises";
-import { Post, Response, Route, Service, ServiceClass, WebObject } from "dolphin";
+import { Logger, Post, Response, Route, Service, ServiceClass, WebObject } from "dolphin";
 import { Mod } from "shared/types/minecraft";
 
 @Service("mod-installer-service", "/installer", serviceConf.mod_installer.ip, serviceConf.mod_installer.port)
 export default class ModInstallerService extends ServiceClass {
-    private modPath: string;
-    private modsList: string[];
+    private modsPath: string;
+    private logger: Logger;
 
     public override async OnStart(): Promise<void> {
-        this.modPath = `${mcServerConf.path}/mods`;
-        this.modsList = await this.GetMods();
+        this.modsPath = `${mcServerConf.path}/mods`;
+        this.logger = new Logger("mod-installer-service");
     }
 
     private async GetMods(): Promise<string[]> {
-        return await readdir(this.modPath);
-    }
-
-    private async AddMod(name: string): Promise<void> {
-        const path: string = `${appConf.app_path}/server/mods/${name}`;
-        await copyFile(path, `${this.modPath}/${name}`);
-    }
-
-    private async DeleteMod(name: string): Promise<void> {
-        const path: string = `${this.modPath}/${name}`;
-        await rm(path);
+        return await readdir(this.modsPath);
     }
 
     @Post
@@ -36,33 +27,19 @@ export default class ModInstallerService extends ServiceClass {
     public async OnServerStart(
         @WebObject("mods") mods: Mod[]
     ): Promise<Response> {
-        for (const mod of mods) {
-            try {
-                const indexOfMod: number = this.modsList.indexOf(mod.name);
-                if (mod.enable) {
-                    if (indexOfMod == -1) {
-                        await this.AddMod(mod.name);
-                        this.modsList.push(mod.name);
-                    }
-                } else {
-                    if (indexOfMod != -1) {
-                        await this.DeleteMod(mod.name);
-                        this.modsList.splice(indexOfMod, 1);
-                    }
-                }
-            } catch (e: any) {
-                console.log(`Error while trying to install/remove ${mod.name}`);
-            }
+        const serverMods: string[] = await this.GetMods();
+
+        for (const modName of serverMods) {
+            await rm(`${this.modsPath}/${modName}`);
         }
 
-        const modToRemove = this.modsList.filter((name: string) => { 
-            return mods.find((mod: Mod) => mod.name == name) == undefined;
-        });
-
-        for (const name of modToRemove) {
-            const index: number = this.modsList.indexOf(name);
-            this.modsList.splice(index, 1);
-            await this.DeleteMod(name);
+        for (const mod of mods) {
+            const modName: string = `${mod.name.replace(".jar", "")}-server-enable.jar`;
+            if (existsSync(`${appConf.app_path}/mods/${modName}`)) {
+                await copyFile(`${appConf.app_path}/mods/${modName}`, `${this.modsPath}/${mod.name}`);
+            } else {
+                this.logger.Warning(`Cannot find mod ${modName}`);
+            }
         }
 
         return Response.Ok();

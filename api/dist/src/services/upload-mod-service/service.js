@@ -28,8 +28,7 @@ const promises_1 = require("fs/promises");
 let UploadModService = class UploadModService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.serverFolderPath = `${app_conf_json_1.default.app_path}/server`;
-            this.clientFolderPath = `${app_conf_json_1.default.app_path}/client`;
+            this.modsPath = app_conf_json_1.default.app_path + "/mods";
         });
     }
     GetFile(mod, name) {
@@ -41,6 +40,9 @@ let UploadModService = class UploadModService extends dolphin_1.ServiceClass {
             yield (0, promises_1.writeFile)(filename, buffer);
         });
     }
+    GetModWithoutExtension(mod) {
+        return mod.name.replace(".jar", "");
+    }
     OnUpload(modsData, files) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -50,7 +52,8 @@ let UploadModService = class UploadModService extends dolphin_1.ServiceClass {
                 for (const modName of modsDataJson.client) {
                     const file = this.GetFile(files, modName);
                     if (file) {
-                        yield this.CreateJar(`${this.clientFolderPath}/mods/${file.originalname}`, file.buffer);
+                        const fileName = `${modName.replace(".jar", "")}-client-enable.jar`;
+                        yield this.CreateJar(`${this.modsPath}/${fileName}`, file.buffer);
                         client.push({
                             name: file.originalname,
                             side: "client",
@@ -61,7 +64,8 @@ let UploadModService = class UploadModService extends dolphin_1.ServiceClass {
                 for (const modName of modsDataJson.server) {
                     const file = this.GetFile(files, modName);
                     if (file) {
-                        yield this.CreateJar(`${this.serverFolderPath}/mods/${file.originalname}`, file.buffer);
+                        const fileName = `${modName.replace(".jar", "")}-server-enable.jar`;
+                        yield this.CreateJar(`${this.modsPath}/${fileName}`, file.buffer);
                         server.push({
                             name: file.originalname,
                             side: "server",

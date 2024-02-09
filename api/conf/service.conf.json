@@ -19,6 +19,11 @@
         "port": 4003,
         "url": "http://localhost:4003/installer"
     },
+    "client_conf": {
+        "ip": "localhost",
+        "port": 4004,
+        "url": "http://localhost:4004/client-conf"
+    },
     "gateway": {
         "ip": "localhost",
         "port": 8080,

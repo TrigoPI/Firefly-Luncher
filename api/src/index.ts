@@ -16,14 +16,7 @@ export default class Main {
     }
 
     private async CreateAppFolder(): Promise<void> {
-        if (!existsSync(`${serverConf.app_path}/server`)) await mkdir(`${serverConf.app_path}/server`);
-        if (!existsSync(`${serverConf.app_path}/client`)) await mkdir(`${serverConf.app_path}/client`);
-
-        if (!existsSync(`${serverConf.app_path}/server/mods`))    await mkdir(`${serverConf.app_path}/server/mods`);
-        if (!existsSync(`${serverConf.app_path}/server/disable`)) await mkdir(`${serverConf.app_path}/server/disable`);
-
-        if (!existsSync(`${serverConf.app_path}/client/mods`))    await mkdir(`${serverConf.app_path}/client/mods`);
-        if (!existsSync(`${serverConf.app_path}/client/disable`)) await mkdir(`${serverConf.app_path}/client/disable`);
+        if (!existsSync(`${serverConf.app_path}/mods`)) await mkdir(`${serverConf.app_path}/mods`);
     }
 
     public static async CreateApplication(): Promise<void> {

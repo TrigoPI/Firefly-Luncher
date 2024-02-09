@@ -17,36 +17,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var Main_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-const app_conf_json_1 = __importDefault(require("../conf/app.conf.json"));
-const path_1 = __importDefault(require("path"));
+const client_conf_json_1 = __importDefault(require("../../../conf/client.conf.json"));
+const service_conf_json_1 = __importDefault(require("../../../conf/service.conf.json"));
 const dolphin_1 = require("dolphin");
-const fs_1 = require("fs");
-const promises_1 = require("fs/promises");
-let Main = Main_1 = class Main {
-    Start() {
+let ClientConfService = class ClientConfService extends dolphin_1.ServiceClass {
+    OnGetConf() {
         return __awaiter(this, void 0, void 0, function* () {
-            const luncher = dolphin_1.ServiceLuncher.GetInstance();
-            yield this.CreateAppFolder();
-            yield luncher.LoadServices();
-            yield luncher.StartAllService();
-        });
-    }
-    CreateAppFolder() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!(0, fs_1.existsSync)(`${app_conf_json_1.default.app_path}/mods`))
-                yield (0, promises_1.mkdir)(`${app_conf_json_1.default.app_path}/mods`);
-        });
-    }
-    static CreateApplication() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const app = new Main_1();
-            yield app.Start();
+            return dolphin_1.Response.Json(client_conf_json_1.default);
         });
     }
 };
-Main = Main_1 = __decorate([
-    (0, dolphin_1.EntryPoint)(path_1.default.resolve(".", "services"))
-], Main);
-exports.default = Main;
+__decorate([
+    dolphin_1.Get,
+    (0, dolphin_1.Route)("/")
+], ClientConfService.prototype, "OnGetConf", null);
+ClientConfService = __decorate([
+    (0, dolphin_1.Service)("client-conf", "/client-conf", service_conf_json_1.default.client_conf.ip, service_conf_json_1.default.client_conf.port)
+], ClientConfService);
+exports.default = ClientConfService;

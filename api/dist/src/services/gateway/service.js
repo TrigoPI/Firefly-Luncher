@@ -24,9 +24,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const service_conf_json_1 = __importDefault(require("../../../conf/service.conf.json"));
 const dolphin_1 = require("dolphin");
 const rest_client_1 = require("rest-client");
-let ModsService = class ModsService extends dolphin_1.ServiceClass {
+let GatewayService = class GatewayService extends dolphin_1.ServiceClass {
     GetMod(mod, name) {
         return mod.find((value) => value.name == name);
+    }
+    OnGetClientConf() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [res, err] = yield rest_client_1.RestClient.Get(service_conf_json_1.default.client_conf.url);
+            if (err)
+                return new dolphin_1.Response(err.body, dolphin_1.MediaType.PLAIN_HTML, err.code);
+            return dolphin_1.Response.Json(res.Json());
+        });
     }
     OnGetProperties() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -111,7 +119,7 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             const [uploadRes, uploadErr] = yield rest_client_1.RestClient.PostForm(`${service_conf_json_1.default.upload_service.url}/jar`, formData);
             if (uploadErr)
                 new dolphin_1.Response(uploadErr.body, dolphin_1.MediaType.PLAIN_TEXT, uploadErr.code);
-            const [_, addModErr] = yield rest_client_1.RestClient.Post(`${service_conf_json_1.default.mods_service.url}/add`, { "mods-data": modsData });
+            const [_, addModErr] = yield rest_client_1.RestClient.Post(`${service_conf_json_1.default.mods_service.url}/add`);
             if (addModErr)
                 return new dolphin_1.Response(addModErr.body, dolphin_1.MediaType.PLAIN_TEXT, addModErr.code);
             return dolphin_1.Response.Json(uploadRes.Json());
@@ -120,37 +128,41 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
 };
 __decorate([
     dolphin_1.Get,
+    (0, dolphin_1.Route)("/client-conf")
+], GatewayService.prototype, "OnGetClientConf", null);
+__decorate([
+    dolphin_1.Get,
     (0, dolphin_1.Route)("/server/properties")
-], ModsService.prototype, "OnGetProperties", null);
+], GatewayService.prototype, "OnGetProperties", null);
 __decorate([
     dolphin_1.Get,
     (0, dolphin_1.Route)("/server/buffer")
-], ModsService.prototype, "OnGetBuffer", null);
+], GatewayService.prototype, "OnGetBuffer", null);
 __decorate([
     dolphin_1.Post,
     (0, dolphin_1.Route)("/server/command"),
     __param(0, (0, dolphin_1.WebString)("cmd"))
-], ModsService.prototype, "OnServerCommand", null);
+], GatewayService.prototype, "OnServerCommand", null);
 __decorate([
     dolphin_1.Post,
     (0, dolphin_1.Route)("/server/:action"),
     __param(0, (0, dolphin_1.WebString)("action"))
-], ModsService.prototype, "OnMcServerStart", null);
+], GatewayService.prototype, "OnMcServerStart", null);
 __decorate([
     dolphin_1.Post,
     (0, dolphin_1.Route)("/mod/:action/:side/:name"),
     __param(0, (0, dolphin_1.WebString)("action")),
     __param(1, (0, dolphin_1.WebString)("side")),
     __param(2, (0, dolphin_1.WebString)("name"))
-], ModsService.prototype, "OnModEnableOrDisable", null);
+], GatewayService.prototype, "OnModEnableOrDisable", null);
 __decorate([
     dolphin_1.Post,
     (0, dolphin_1.Route)("/mods/add"),
     (0, dolphin_1.FileFormEncoded)("jar", true),
     __param(0, (0, dolphin_1.WebString)("side")),
     __param(1, (0, dolphin_1.WebObject)("jar"))
-], ModsService.prototype, "OnModsAdded", null);
-ModsService = __decorate([
+], GatewayService.prototype, "OnModsAdded", null);
+GatewayService = __decorate([
     (0, dolphin_1.Service)("gateway", "/api", service_conf_json_1.default.gateway.ip, service_conf_json_1.default.gateway.port)
-], ModsService);
-exports.default = ModsService;
+], GatewayService);
+exports.default = GatewayService;

@@ -1,4 +1,6 @@
 import axios, { AxiosResponse, ResponseType } from "axios";
+import { mkdirSync } from "fs";
+import { writeFile } from "fs/promises";
 
 export class HttpError extends Error {
     public readonly status: number;
@@ -20,3 +22,14 @@ export async function Get<T>(url: string, responseType: ResponseType): Promise<[
         return [undefined, e];
     }
 } 
+
+export async function DownloadFile(url: string, outDir: string, filename: string): Promise<Error | undefined> {
+    CreateFolderIfNotExist(outDir);
+    const [buffer, err] = await Get<ArrayBuffer>(url, "arraybuffer");
+    if (err) return err;
+    await writeFile(`${outDir}/${filename}`, new Uint8Array(buffer));
+}
+
+export function CreateFolderIfNotExist(path: string): void {
+    mkdirSync(path, { recursive: true });
+}

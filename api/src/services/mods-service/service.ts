@@ -7,13 +7,11 @@ import { readdir, rename, rm } from "fs/promises";
 
 @Service("mods-service", "/mods", serviceConf.mods_service.ip, serviceConf.mods_service.port)
 export default class ModsService extends ServiceClass {
-    private serverFolderPath: string;
-    private clientFolderPath: string;
+    private modsPath: string;
     private mods: ModList;
 
     public override async OnStart(): Promise<void> {
-        this.serverFolderPath = `${serverConf.app_path}/server`;
-        this.clientFolderPath = `${serverConf.app_path}/client`;
+        this.modsPath = serverConf.app_path + "/mods";
         this.mods = await this.GetMods();
     }
 
@@ -24,33 +22,29 @@ export default class ModsService extends ServiceClass {
         return mods[index];
     }
 
+    private GetModWithoutExtension(mod: Mod): string {
+        return mod.name.replace(".jar", "");
+    }
+
+    private ModEnableToString(mod: Mod): string {
+        return mod.enable? "enable" : "disable";
+    }
+
     private async GetMods(): Promise<ModList> {
-        const serverModsEnable: Mod[] = (await readdir(`${this.serverFolderPath}/mods`)).map((name: string) => {
-            const enable: boolean = true;
-            const side: ModSide = 'server';
-            return { name, enable, side };
-        });
+        const client: Mod[] = [];
+        const server: Mod[] = [];
+        
+        (await readdir(this.modsPath)).forEach((nameRaw: string) => {
+            const nameSplit: string[] = nameRaw.split(".");
+            const desc: string[] = nameSplit[nameSplit.length - 2].split("-");
+            const side: ModSide = <ModSide>desc[desc.length - 2];
+            const enable: boolean = desc[desc.length - 1] == "enable";
+            const name: string = nameRaw.replace(`-${side}-${desc[desc.length - 1]}`, "");
 
-        const serverModsDisable: Mod[] = (await readdir(`${this.serverFolderPath}/disable`)).map((name: string) => {
-            const enable: boolean = false;
-            const side: ModSide = 'server';
-            return { name, enable, side };
-        });
+            let arrayPtr: Mod[] = (side == "client")? client : server;
 
-        const clientModsEnable: Mod[] = (await readdir(`${this.clientFolderPath}/mods`)).map((name: string) => {
-            const enable: boolean = true;
-            const side: ModSide = 'client';
-            return { name, enable, side };
+            arrayPtr.push({ name, side, enable });
         });
-
-        const clientModsDisable: Mod[] = (await readdir(`${this.clientFolderPath}/disable`)).map((name: string) => {
-            const enable: boolean = false;
-            const side: ModSide = 'client';
-            return { name, enable, side };
-        });
-
-        const client: Mod[] = [ ...clientModsEnable, ...clientModsDisable ];
-        const server: Mod[] = [ ...serverModsEnable, ...serverModsDisable ];
 
         return { client, server };
     }
@@ -75,21 +69,8 @@ export default class ModsService extends ServiceClass {
 
     @Post
     @Route("/add")
-    public async OnModAdded(
-        @WebObject("mods-data") modsData: Record<string, string[]>
-    ): Promise<Response> {
-        for (const name of modsData.client) {
-            const side: ModSide = "client";
-            const enable: boolean = true;
-            this.mods.client.push({ name, side, enable });
-        } 
-
-        for (const name of modsData.server) {
-            const side: ModSide = "server";
-            const enable: boolean = true;
-            this.mods.server.push({ name, side, enable });
-        } 
-
+    public async OnModAdded(): Promise<Response> {
+        this.mods = await this.GetMods();
         return Response.Ok();
     }
 
@@ -104,9 +85,10 @@ export default class ModsService extends ServiceClass {
         const mod: Mod | undefined = this.FindMod(name, side);
         if (!mod) return Response.NotFound();
 
-        const path: string = `${(side == "client")? this.clientFolderPath : this.serverFolderPath}/${mod.enable? "mods" : "disable"}`;
-        await rm(`${path}/${name}`);
-        
+        const enableString: string = this.ModEnableToString(mod);
+        const modName: string = this.GetModWithoutExtension(mod);
+
+        await rm(`${this.modsPath}/${modName}-${side}-${enableString}.jar`);
         this.mods = await this.GetMods();
 
         return Response.Ok();
@@ -121,12 +103,14 @@ export default class ModsService extends ServiceClass {
         if (side != "client" && side != "server") return Response.NotFound();
 
         const mod: Mod | undefined = this.FindMod(name, side);
-        const path: string = (side == "client")? this.clientFolderPath : this.serverFolderPath;
         if (!mod) return Response.NotFound();
+
+        const enableString: string = this.ModEnableToString(mod);
+        const modName: string = this.GetModWithoutExtension(mod);
         
         try {
             mod.enable = false;
-            await rename(`${path}/mods/${name}`, `${path}/disable/${name}`);
+            await rename(`${this.modsPath}/${modName}-${side}-${enableString}.jar`, `${this.modsPath}/${modName}-${side}-disable.jar`);
             return Response.Ok();
         } catch (e: any) {
             console.log(e);
@@ -143,12 +127,14 @@ export default class ModsService extends ServiceClass {
         if (side != "client" && side != "server") return Response.NotFound();
 
         const mod: Mod | undefined = this.FindMod(name, side);
-        const path: string = (side == "client")? this.clientFolderPath : this.serverFolderPath;
-        if (!mod) return Response.NotFound();        
-        
+        if (!mod) return Response.NotFound();
+
+        const enableString: string = this.ModEnableToString(mod);
+        const modName: string = this.GetModWithoutExtension(mod);
+
         try {
             mod.enable = true;
-            await rename(`${path}/disable/${name}`, `${path}/mods/${name}`);
+            await rename(`${this.modsPath}/${modName}-${side}-${enableString}.jar`, `${this.modsPath}/${modName}-${side}-enable.jar`);
             return Response.Ok();
         } catch (e: any) {
             console.log(e);

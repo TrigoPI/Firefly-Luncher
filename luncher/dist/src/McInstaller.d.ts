@@ -1,0 +1,57 @@
+import { Forge, Minecraft, OsName } from "./Types";
+export declare class McInstaller {
+    private assetsUrl;
+    private versionManifestUrl;
+    private manifest;
+    private versionInfoCache;
+    private stepCallback;
+    private logger;
+    constructor();
+    InstallVersion(mcVersion: string, root: string, os: OsName): Promise<void>;
+    AddStepCallback(cb: (size: number) => void): void;
+    GetManifest(): Promise<Minecraft.VersionManifest>;
+    GetVersion(mcVerison: string): Promise<Minecraft.Version>;
+    GetVersionInfo(mcVersion: string): Promise<Minecraft.VersionInfo>;
+    GetAssets(mcVerison: string): Promise<Minecraft.Assets>;
+    GetSize(mcVerison: string, os: OsName): Promise<number>;
+    private DownloadJar;
+    private DownloadLibraries;
+    private DownloadIndexes;
+    private DownloadAssets;
+    private GetArtifact;
+    private IsLibraryAllowed;
+    private HasRulesForOs;
+    private IsLibraryNative;
+    private ExecuteCallback;
+}
+export declare class ForgeInstaller {
+    private versionsCache;
+    private logger;
+    private mcInstaller;
+    constructor();
+    InstallVersion(mcVersion: string, forgeVersion: string, root: string): Promise<void>;
+    GetVersion(mcVersion: string): Promise<Forge.Version[]>;
+    GetLatestForgeVersion(mcVersion: string): Promise<Forge.Version>;
+    GetForgeVersion(mcVersion: string, forgeVersion: string): Promise<Forge.Version>;
+    private DownloadJar;
+    private UnpackForgeJar;
+    private CreateVersion;
+    private InstallLibraries;
+    private StartProcessor;
+    private DownloadMOJMAPS;
+    private GetForgeFiles;
+    private GetInstallProfile;
+    private GetVersionJson;
+    private MixArgs;
+    private GetMainClassFromJar;
+    private RunProcess;
+    private GetPathLibraryFile;
+    private GetPathFromPackageName;
+    private GetInstallProfileData;
+    private IsMacro;
+    private IsPackage;
+    private GetPackageJarName;
+    private IsMinecraftVersionInstalled;
+    private IsForgeAlreadyInstalled;
+    private CopyForgeLibFromInstaller;
+}

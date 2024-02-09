@@ -7,12 +7,10 @@ import { appendFile, writeFile } from "fs/promises";
 
 @Service("upload-mod-service", "/upload", serviceConf.upload_service.ip, serviceConf.upload_service.port)
 export default class UploadModService extends ServiceClass {
-    private serverFolderPath: string;
-    private clientFolderPath: string;
+    private modsPath: string;
 
     public override async OnStart(): Promise<void> {
-        this.serverFolderPath = `${serverConf.app_path}/server`;
-        this.clientFolderPath = `${serverConf.app_path}/client`;
+        this.modsPath = serverConf.app_path + "/mods";
     }
 
     private GetFile(mod: any[], name: string): any | undefined {
@@ -22,6 +20,10 @@ export default class UploadModService extends ServiceClass {
     private async CreateJar(filename: string, buffer: Buffer): Promise<void> {
         await appendFile(filename, "");
         await writeFile(filename, buffer);
+    }
+
+    private GetModWithoutExtension(mod: Mod): string {
+        return mod.name.replace(".jar", "");
     }
 
     @Post
@@ -38,8 +40,11 @@ export default class UploadModService extends ServiceClass {
 
             for (const modName of modsDataJson.client) {
                 const file: any | undefined = this.GetFile(files, modName);
+
                 if (file) {
-                    await this.CreateJar(`${this.clientFolderPath}/mods/${file.originalname}`, file.buffer);
+                    const fileName: string = `${modName.replace(".jar", "")}-client-enable.jar`;
+                    await this.CreateJar(`${this.modsPath}/${fileName}`, file.buffer);
+                    
                     client.push({
                         name: file.originalname,
                         side: "client",
@@ -50,8 +55,11 @@ export default class UploadModService extends ServiceClass {
     
             for (const modName of modsDataJson.server) {
                 const file: any | undefined = this.GetFile(files, modName);
-                if(file) {
-                    await this.CreateJar(`${this.serverFolderPath}/mods/${file.originalname}`, file.buffer);
+                
+                if (file) {
+                    const fileName: string = `${modName.replace(".jar", "")}-server-enable.jar`;
+                    await this.CreateJar(`${this.modsPath}/${fileName}`, file.buffer);
+
                     server.push({
                         name: file.originalname,
                         side: "server",

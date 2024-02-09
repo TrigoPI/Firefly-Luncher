@@ -28,8 +28,7 @@ const promises_1 = require("fs/promises");
 let ModsService = class ModsService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.serverFolderPath = `${app_conf_json_1.default.app_path}/server`;
-            this.clientFolderPath = `${app_conf_json_1.default.app_path}/client`;
+            this.modsPath = app_conf_json_1.default.app_path + "/mods";
             this.mods = yield this.GetMods();
         });
     }
@@ -40,30 +39,25 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             return undefined;
         return mods[index];
     }
+    GetModWithoutExtension(mod) {
+        return mod.name.replace(".jar", "");
+    }
+    ModEnableToString(mod) {
+        return mod.enable ? "enable" : "disable";
+    }
     GetMods() {
         return __awaiter(this, void 0, void 0, function* () {
-            const serverModsEnable = (yield (0, promises_1.readdir)(`${this.serverFolderPath}/mods`)).map((name) => {
-                const enable = true;
-                const side = 'server';
-                return { name, enable, side };
+            const client = [];
+            const server = [];
+            (yield (0, promises_1.readdir)(this.modsPath)).forEach((nameRaw) => {
+                const nameSplit = nameRaw.split(".");
+                const desc = nameSplit[nameSplit.length - 2].split("-");
+                const side = desc[desc.length - 2];
+                const enable = desc[desc.length - 1] == "enable";
+                const name = nameRaw.replace(`-${side}-${desc[desc.length - 1]}`, "");
+                let arrayPtr = (side == "client") ? client : server;
+                arrayPtr.push({ name, side, enable });
             });
-            const serverModsDisable = (yield (0, promises_1.readdir)(`${this.serverFolderPath}/disable`)).map((name) => {
-                const enable = false;
-                const side = 'server';
-                return { name, enable, side };
-            });
-            const clientModsEnable = (yield (0, promises_1.readdir)(`${this.clientFolderPath}/mods`)).map((name) => {
-                const enable = true;
-                const side = 'client';
-                return { name, enable, side };
-            });
-            const clientModsDisable = (yield (0, promises_1.readdir)(`${this.clientFolderPath}/disable`)).map((name) => {
-                const enable = false;
-                const side = 'client';
-                return { name, enable, side };
-            });
-            const client = [...clientModsEnable, ...clientModsDisable];
-            const server = [...serverModsEnable, ...serverModsDisable];
             return { client, server };
         });
     }
@@ -82,18 +76,9 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             return dolphin_1.Response.Json(mod);
         });
     }
-    OnModAdded(modsData) {
+    OnModAdded() {
         return __awaiter(this, void 0, void 0, function* () {
-            for (const name of modsData.client) {
-                const side = "client";
-                const enable = true;
-                this.mods.client.push({ name, side, enable });
-            }
-            for (const name of modsData.server) {
-                const side = "server";
-                const enable = true;
-                this.mods.server.push({ name, side, enable });
-            }
+            this.mods = yield this.GetMods();
             return dolphin_1.Response.Ok();
         });
     }
@@ -104,8 +89,9 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             const mod = this.FindMod(name, side);
             if (!mod)
                 return dolphin_1.Response.NotFound();
-            const path = `${(side == "client") ? this.clientFolderPath : this.serverFolderPath}/${mod.enable ? "mods" : "disable"}`;
-            yield (0, promises_1.rm)(`${path}/${name}`);
+            const enableString = this.ModEnableToString(mod);
+            const modName = this.GetModWithoutExtension(mod);
+            yield (0, promises_1.rm)(`${this.modsPath}/${modName}-${side}-${enableString}.jar`);
             this.mods = yield this.GetMods();
             return dolphin_1.Response.Ok();
         });
@@ -115,12 +101,13 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             if (side != "client" && side != "server")
                 return dolphin_1.Response.NotFound();
             const mod = this.FindMod(name, side);
-            const path = (side == "client") ? this.clientFolderPath : this.serverFolderPath;
             if (!mod)
                 return dolphin_1.Response.NotFound();
+            const enableString = this.ModEnableToString(mod);
+            const modName = this.GetModWithoutExtension(mod);
             try {
                 mod.enable = false;
-                yield (0, promises_1.rename)(`${path}/mods/${name}`, `${path}/disable/${name}`);
+                yield (0, promises_1.rename)(`${this.modsPath}/${modName}-${side}-${enableString}.jar`, `${this.modsPath}/${modName}-${side}-disable.jar`);
                 return dolphin_1.Response.Ok();
             }
             catch (e) {
@@ -134,12 +121,13 @@ let ModsService = class ModsService extends dolphin_1.ServiceClass {
             if (side != "client" && side != "server")
                 return dolphin_1.Response.NotFound();
             const mod = this.FindMod(name, side);
-            const path = (side == "client") ? this.clientFolderPath : this.serverFolderPath;
             if (!mod)
                 return dolphin_1.Response.NotFound();
+            const enableString = this.ModEnableToString(mod);
+            const modName = this.GetModWithoutExtension(mod);
             try {
                 mod.enable = true;
-                yield (0, promises_1.rename)(`${path}/disable/${name}`, `${path}/mods/${name}`);
+                yield (0, promises_1.rename)(`${this.modsPath}/${modName}-${side}-${enableString}.jar`, `${this.modsPath}/${modName}-${side}-enable.jar`);
                 return dolphin_1.Response.Ok();
             }
             catch (e) {
@@ -161,8 +149,7 @@ __decorate([
 ], ModsService.prototype, "OnGetMod", null);
 __decorate([
     dolphin_1.Post,
-    (0, dolphin_1.Route)("/add"),
-    __param(0, (0, dolphin_1.WebObject)("mods-data"))
+    (0, dolphin_1.Route)("/add")
 ], ModsService.prototype, "OnModAdded", null);
 __decorate([
     dolphin_1.Post,

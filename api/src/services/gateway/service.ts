@@ -5,9 +5,17 @@ import { ModList, Mod, ModSide } from "shared/types/minecraft"
 import { RestClient } from "rest-client";
 
 @Service("gateway", "/api", serviceConf.gateway.ip, serviceConf.gateway.port)
-export default class ModsService extends ServiceClass {
+export default class GatewayService extends ServiceClass {
     private GetMod(mod: Mod[], name: string): Mod | undefined {
         return mod.find((value: Mod) => value.name == name);
+    }
+
+    @Get
+    @Route("/client-conf")
+    public async OnGetClientConf(): Promise<Response> {
+        const [res, err] = await RestClient.Get(serviceConf.client_conf.url);
+        if (err) return new Response(err.body, MediaType.PLAIN_HTML, err.code);
+        return Response.Json(res.Json()); 
     }
 
     @Get
@@ -109,7 +117,7 @@ export default class ModsService extends ServiceClass {
         const [uploadRes, uploadErr] = await RestClient.PostForm(`${serviceConf.upload_service.url}/jar`, formData);
         if (uploadErr) new Response(uploadErr.body, MediaType.PLAIN_TEXT, uploadErr.code);
 
-        const [_, addModErr] = await RestClient.Post(`${serviceConf.mods_service.url}/add`, { "mods-data": modsData });
+        const [_, addModErr] = await RestClient.Post(`${serviceConf.mods_service.url}/add`);
         if (addModErr) return new Response(addModErr.body, MediaType.PLAIN_TEXT, addModErr.code);
 
         return Response.Json<ModList>(uploadRes.Json<ModList>());

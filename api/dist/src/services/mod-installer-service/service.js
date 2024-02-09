@@ -24,61 +24,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mcserver_conf_json_1 = __importDefault(require("../../../conf/mcserver.conf.json"));
 const service_conf_json_1 = __importDefault(require("../../../conf/service.conf.json"));
 const app_conf_json_1 = __importDefault(require("../../../conf/app.conf.json"));
+const fs_1 = require("fs");
 const promises_1 = require("fs/promises");
 const dolphin_1 = require("dolphin");
 let ModInstallerService = class ModInstallerService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.modPath = `${mcserver_conf_json_1.default.path}/mods`;
-            this.modsList = yield this.GetMods();
+            this.modsPath = `${mcserver_conf_json_1.default.path}/mods`;
+            this.logger = new dolphin_1.Logger("mod-installer-service");
         });
     }
     GetMods() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield (0, promises_1.readdir)(this.modPath);
-        });
-    }
-    AddMod(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const path = `${app_conf_json_1.default.app_path}/server/mods/${name}`;
-            yield (0, promises_1.copyFile)(path, `${this.modPath}/${name}`);
-        });
-    }
-    DeleteMod(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const path = `${this.modPath}/${name}`;
-            yield (0, promises_1.rm)(path);
+            return yield (0, promises_1.readdir)(this.modsPath);
         });
     }
     OnServerStart(mods) {
         return __awaiter(this, void 0, void 0, function* () {
-            for (const mod of mods) {
-                try {
-                    const indexOfMod = this.modsList.indexOf(mod.name);
-                    if (mod.enable) {
-                        if (indexOfMod == -1) {
-                            yield this.AddMod(mod.name);
-                            this.modsList.push(mod.name);
-                        }
-                    }
-                    else {
-                        if (indexOfMod != -1) {
-                            yield this.DeleteMod(mod.name);
-                            this.modsList.splice(indexOfMod, 1);
-                        }
-                    }
-                }
-                catch (e) {
-                    console.log(`Error while trying to install/remove ${mod.name}`);
-                }
+            const serverMods = yield this.GetMods();
+            for (const modName of serverMods) {
+                yield (0, promises_1.rm)(`${this.modsPath}/${modName}`);
             }
-            const modToRemove = this.modsList.filter((name) => {
-                return mods.find((mod) => mod.name == name) == undefined;
-            });
-            for (const name of modToRemove) {
-                const index = this.modsList.indexOf(name);
-                this.modsList.splice(index, 1);
-                yield this.DeleteMod(name);
+            for (const mod of mods) {
+                const modName = `${mod.name.replace(".jar", "")}-server-enable.jar`;
+                if ((0, fs_1.existsSync)(`${app_conf_json_1.default.app_path}/mods/${modName}`)) {
+                    yield (0, promises_1.copyFile)(`${app_conf_json_1.default.app_path}/mods/${modName}`, `${this.modsPath}/${mod.name}`);
+                }
+                else {
+                    this.logger.Warning(`Cannot find mod ${modName}`);
+                }
             }
             return dolphin_1.Response.Ok();
         });
