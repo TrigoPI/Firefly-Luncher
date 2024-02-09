@@ -31,6 +31,7 @@
 		"exception": "file:../dependencies/exception",
 		"firebase": "^10.7.2",
 		"shared": "file:../shared",
+		"socket.io-client": "^4.7.4",
 		"svelte-fa": "^4.0.1",
 		"svelte-file-dropzone": "^2.0.4"
 	}

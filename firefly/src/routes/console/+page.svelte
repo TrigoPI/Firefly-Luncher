@@ -40,7 +40,7 @@
         const val: any = snapshot.val();
         if (!val) buffer = [];
     });
-
+    
     onChildAdded(Firebase.SERVER_LOG_REF, async (snapshot: DataSnapshot) => {
         buffer = [...buffer, snapshot.val()];
         await tick();
