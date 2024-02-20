@@ -1,23 +1,33 @@
 <script lang="ts">
-    import type { ServerState } from "shared/types/minecraft";
-    
+    import { onMount } from "svelte";
     import { DataSnapshot, onValue } from "firebase/database";
     import { faComputer, faGaugeHigh, faHashtag, faPlay, faSpinner, faStop, faUserGroup, faWrench } from "@fortawesome/free-solid-svg-icons";
-    
     import Fa from "svelte-fa"
+    
+    import type { ServerState } from "shared/types/minecraft";
     import ServerInfo from "./server-info.svelte";
     
-    import RestClient from "$lib/rest-client/RestClient";
-    import { API_URL } from "$lib/confs/routes";
-    import { Firebase } from "$lib/confs/firebase";
-    import { onMount } from "svelte";
+    import url from "@conf/url.json";
+    import RestClient from "@lib/rest-client/RestClient";
+    import { Firebase } from "@lib/utils/firebase";
+    import { popupMessage } from "@lib/stores/popup-store";
+    import type HttpErrorException from "@lib/rest-client/Exception";
 
     let serverState: ServerState = 'loading';
     let properties: Record<string, any> = {};
 
     const handleButtonClick = async (state: ServerState): Promise<void> => {
-        if (state == 'stopped') await RestClient.Post(`${API_URL}/server/start`);
-        if (state == 'running') await RestClient.Post(`${API_URL}/server/stop`);
+        let err: HttpErrorException | undefined = undefined;
+        let _: any = undefined;
+
+        if (state == 'stopped') [_, err] = await RestClient.Post(`${url.api}/server/start`);
+        if (state == 'running') [_, err] = await RestClient.Post(`${url.api}/server/stop`);
+        
+        if (err) {
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+            return;
+        }
+        
         serverState = 'loading';
     }
 
@@ -27,8 +37,13 @@
     });
 
     onMount(async () => {
-        const [res, err] = await RestClient.Get(`${API_URL}/server/properties`);
-        if (err) return;
+        const [res, err] = await RestClient.Get(`${url.api}/server/properties`);
+        
+        if (err) {
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+            return;
+        }
+
         properties =  res.Json();
     });
 </script>
@@ -54,7 +69,7 @@
                 </button>
             {/if}
         </div>
-        <div class="card-table overflow-hidden overflow-y-scroll flex-1 py-2">
+        <div class="card-table overflow-hidden overflow-y-scroll flex-1 p-2">
             <ServerInfo 
                 title="IP"
                 data={ properties["server-ip"] }

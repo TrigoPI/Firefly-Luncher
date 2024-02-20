@@ -35,8 +35,9 @@ const Event_1 = require("../../minecraft/core/Event");
 let McServerService = class McServerService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
+            this.serverPath = `${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/${mcserver_conf_json_1.default.version}`;
             this.cmdId = 0;
-            this.mcServer = new McServer_1.default(mcserver_conf_json_1.default.path, mcserver_conf_json_1.default.name, mcserver_conf_json_1.default.version);
+            this.mcServer = new McServer_1.default(this.serverPath, mcserver_conf_json_1.default.name, mcserver_conf_json_1.default.version);
             this.mcServer.SetCustomStartCommand(mcserver_conf_json_1.default.cmd);
             this.mcServer.AddEventListener(e => this.OnMcServerEvent(e));
             yield this.AuthToFirebase();

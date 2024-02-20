@@ -1,5 +1,9 @@
 {
     "name": "test",
     "version": "1.20.1",
-    "forge": "1.20.1-forge-49.3"
+    "forge": "47.2.20",
+    "fullname": "1.20.1-forge-47.2.20",
+    "mc_size": 705947409,
+    "forge_size": 21185900,
+    "processors": 5
 }

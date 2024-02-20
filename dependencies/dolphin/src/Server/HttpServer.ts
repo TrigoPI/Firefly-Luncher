@@ -226,6 +226,12 @@ export default class HttpServer {
                 case MediaType.APPLICATION_JSON:
                     res.status(response.code).json(JSON.parse(response.body));
                     break;
+                case MediaType.FILE:
+                    const json: Record<string, string> = JSON.parse(response.body);
+                    const pathSplit: string[] = json.path.replace(/\\/g, "/").split("/");
+                    const filename: string = (json.filename.length > 0)? json.filename : pathSplit[pathSplit.length - 1];
+                    res.status(response.code).download(json.path, filename);
+                    break;
             }
         } catch (err: any) {
             res.status(500).json({ status: "error", msg: "internal server error" });

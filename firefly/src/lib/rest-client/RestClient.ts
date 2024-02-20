@@ -8,7 +8,7 @@ export default class RestClient {
         try {
             const res: Response = await fetch(url);
             const text: string = await res.text();
-            if (res.status >= 300) return [undefined as any, new HttpErrorException(res.status, text, `Error while fetching [get:${res.status}]/${url}`)];
+            if (res.status >= 300) return [undefined as any, new HttpErrorException(res.status, text, `Error while fetching [get:${res.status}] ${url}`)];
             return [new HttpResponse(text), undefined as any];
         } catch (e: any) {
             return [undefined as any, e];
@@ -23,7 +23,7 @@ export default class RestClient {
             const req: RequestInit = { method, headers, body };
             const res: Response = await fetch(url, req);
             const text: string = await res.text();
-            if (res.status >= 300) return [undefined as any, new HttpErrorException(res.status, text, `Error while fetching [post:${res.status}]/${url}`)];
+            if (res.status >= 300) return [undefined as any, new HttpErrorException(res.status, text, `Error while fetching [post:${res.status}] ${url}`)];
             return [new HttpResponse(text), undefined as any];
         } catch (e: any) {
             return [undefined as any, e];

@@ -19,6 +19,7 @@ var MediaType;
     MediaType[MediaType["PLAIN_TEXT"] = 1] = "PLAIN_TEXT";
     MediaType[MediaType["PLAIN_HTML"] = 2] = "PLAIN_HTML";
     MediaType[MediaType["APPLICATION_JSON"] = 3] = "APPLICATION_JSON";
+    MediaType[MediaType["FILE"] = 4] = "FILE";
 })(MediaType || (exports.MediaType = MediaType = {}));
 class Response {
     constructor(body, type, code) {
@@ -50,6 +51,10 @@ class Response {
     }
     static Text(text, code = Status.OK) {
         return new Response(text, MediaType.PLAIN_TEXT, code);
+    }
+    static File(path, filename = "", code = Status.OK) {
+        const json = JSON.stringify({ path, filename });
+        return new Response(json, MediaType.FILE, code);
     }
 }
 exports.Response = Response;

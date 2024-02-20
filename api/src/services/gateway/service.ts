@@ -11,6 +11,20 @@ export default class GatewayService extends ServiceClass {
     }
 
     @Get
+    @Route("/ping")
+    public async OnPing(): Promise<Response> {
+        return Response.Ok();
+    }
+
+    @Get
+    @Route("/mods/list")
+    public async OnGetModsList(): Promise<Response> {
+        const [res, err] = await RestClient.Get(`${serviceConf.mods_service.url}/list`);
+        if (err) return new Response(err.body, MediaType.PLAIN_HTML, err.code);
+        return Response.Json(res.Json()); 
+    }
+
+    @Get
     @Route("/client-conf")
     public async OnGetClientConf(): Promise<Response> {
         const [res, err] = await RestClient.Get(serviceConf.client_conf.url);
@@ -32,6 +46,17 @@ export default class GatewayService extends ServiceClass {
         const [res, err] = await RestClient.Get(`${serviceConf.mc_server.url}/buffer`);
         if (err) return new Response(err.body, MediaType.PLAIN_HTML, err.code);
         return Response.Json(res.Json()); 
+    }
+
+    @Get
+    @Route("/mods/download/:mod_name")
+    public async OnDownloadMod(
+        @WebString("mod_name") mod_name: string
+    ): Promise<Response> {
+        const [res, err] = await RestClient.Get(`${serviceConf.download.url}/${mod_name}`);
+        if (err) return new Response(err.body, MediaType.PLAIN_HTML, err.code);
+        const json: Record<string, string> = res.Json();
+        return Response.File(json.path, json.filename);
     }
 
     @Post

@@ -1,5 +1,5 @@
-import serverConf from "../../../conf/app.conf.json"
 import serviceConf from "../../../conf/service.conf.json";
+import serverConf from "../../../conf/mcserver.conf.json"
 
 import { Get, Post, Response, Route, Service, ServiceClass, WebObject, WebString } from "dolphin";
 import { ModList, Mod, ModSide } from "shared/types/minecraft"
@@ -11,7 +11,7 @@ export default class ModsService extends ServiceClass {
     private mods: ModList;
 
     public override async OnStart(): Promise<void> {
-        this.modsPath = serverConf.app_path + "/mods";
+        this.modsPath = `${serverConf.path}/${serverConf.name}/mods`;
         this.mods = await this.GetMods();
     }
 

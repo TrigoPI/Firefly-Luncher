@@ -18,7 +18,9 @@ export enum MediaType {
     PLAIN_TEXT,
     PLAIN_HTML,
 
-    APPLICATION_JSON
+    APPLICATION_JSON,
+
+    FILE
 }
 
 export class Response {
@@ -63,5 +65,10 @@ export class Response {
 
     public static Text(text: string, code: number = Status.OK): Response {
         return new Response(text, MediaType.PLAIN_TEXT, code);
+    }
+
+    public static File(path: string, filename: string = "", code: number = Status.OK): Response {
+        const json: string = JSON.stringify({ path, filename });
+        return new Response(json, MediaType.FILE, code);
     }
 } 

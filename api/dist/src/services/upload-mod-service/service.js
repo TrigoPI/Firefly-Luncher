@@ -21,14 +21,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const app_conf_json_1 = __importDefault(require("../../../conf/app.conf.json"));
+const mcserver_conf_json_1 = __importDefault(require("../../../conf/mcserver.conf.json"));
 const service_conf_json_1 = __importDefault(require("../../../conf/service.conf.json"));
 const dolphin_1 = require("dolphin");
 const promises_1 = require("fs/promises");
 let UploadModService = class UploadModService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.modsPath = app_conf_json_1.default.app_path + "/mods";
+            this.modsPath = `${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/mods`;
         });
     }
     GetFile(mod, name) {

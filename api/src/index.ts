@@ -1,4 +1,4 @@
-import serverConf from "../conf/app.conf.json"
+import serverConf from "../conf/mcserver.conf.json";
 
 import path from "path";
 import { EntryPoint, ServiceLuncher } from "dolphin";
@@ -16,7 +16,7 @@ export default class Main {
     }
 
     private async CreateAppFolder(): Promise<void> {
-        if (!existsSync(`${serverConf.app_path}/mods`)) await mkdir(`${serverConf.app_path}/mods`);
+        if (!existsSync(`${serverConf.path}/${serverConf.name}/mods`)) await mkdir(`${serverConf.path}/${serverConf.name}/mods`, { recursive: true });
     }
 
     public static async CreateApplication(): Promise<void> {

@@ -1,23 +1,35 @@
 <script lang="ts">
-    import SocketIO from "$lib/confs/socket";
+    import RestClient from "@lib/rest-client/RestClient";
+    import SocketIO from "@lib/utils/socket";
+    import { Tauri } from "@lib/utils/tauri";
     import { onMount } from "svelte";
 
     export let enable: boolean;
-    export let progress: number = 0;
-    
-    let size: number = 0;
+    export let onFinish: () => void;
 
-    const onStep = async (current: number, total: number): Promise<void> => {
-        size = Math.floor((total / 1000000) * 10) / 10;
-        progress = Math.floor((current / 1000000) * 10) / 10;
+    let progress: number = 0;
+    let message: string = "loading"
+
+    const onStep = async (display: string, advancement: number, totalStep: number, step: number): Promise<void> => {
+        const size = 100 / totalStep;
+        message = display;
+        progress = size * (step + advancement);
     }
 
-    onMount(() => SocketIO.OnStep(async (current: number, total: number) => await onStep(current, total)));
+    SocketIO.OnStart(async () => {
+        onFinish();
+        setTimeout(async () => {
+            Tauri.WriteLog("log.txt", "Lunching game --> Closing app");
+            await Tauri.CloseApp();
+        }, 2000);
+    });
+    
+    onMount(() => SocketIO.OnStep(async (display: string, advancement: number, totalStep: number, step: number) => await onStep(display, advancement, totalStep, step)));
 </script>
 
 <div class="download-bar overflow-hidden {enable? "download-bar-enable" : "download-bar-disable"} bg-neutral-950">
-    <div style="width: {(progress / size) * 100}%;" class="h-full bg-green-700" />
-    <h1 class="absolute top-1/2 left-1/2 text-xl -translate-x-1/2 -translate-y-1/2 text-white">{ progress } / { size }Mb</h1>
+    <div style="width: {progress}%;" class="h-full bg-green-700" />
+    <h1 class="absolute top-1/2 left-1/2 text-xl -translate-x-1/2 -translate-y-1/2 text-white">{ message }</h1>
 </div>
 
 <style>

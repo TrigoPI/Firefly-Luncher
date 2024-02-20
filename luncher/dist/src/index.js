@@ -35,32 +35,41 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const luncher_conf_json_1 = __importDefault(require("../luncher.conf.json"));
+const conf_json_1 = __importDefault(require("../conf.json"));
+const IO = __importStar(require("socket.io"));
 const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const core_1 = require("@xmcl/core");
 const fs_1 = require("fs");
-const IO = __importStar(require("socket.io"));
 const Logger_1 = __importDefault(require("./Logger"));
 const McInstaller_1 = require("./McInstaller");
 const Utils_1 = require("./Utils");
+const promises_1 = require("fs/promises");
+const logger = new Logger_1.default("MAIN");
 const port = 3000;
 const host = "localhost";
-const logger = new Logger_1.default("MAIN");
+const appdata = (0, Utils_1.GetAppData)();
+const appdir = `${appdata}/firefly-luncher`;
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
+const origin = `*`;
+const io = new IO.Server(server, { cors: { origin } });
+const total_step = 4;
 let socket = undefined;
-const io = new IO.Server(server, {
-    cors: {
-        origin: `http://localhost:5173`,
-        credentials: true
+logger.SetLogPath(`${appdir}/logs/log.txt`);
+logger.WriteLog(true);
+function ClearLog() {
+    (0, fs_1.writeFileSync)(`${appdir}/logs/log.txt`, "");
+}
+function CreateAppDirectory() {
+    const dirs = Object.keys(conf_json_1.default.dirs);
+    for (const key of dirs) {
+        const dir = `${appdir}/${conf_json_1.default.dirs[key]}`;
+        if (!(0, fs_1.existsSync)(dir)) {
+            (0, fs_1.mkdirSync)(dir, { recursive: true });
+        }
     }
-});
-function CreateVersionDirectory() {
-    if ((0, fs_1.existsSync)(luncher_conf_json_1.default.root))
-        return;
-    (0, fs_1.mkdirSync)(luncher_conf_json_1.default.root);
 }
 function StartHttpServer() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -68,8 +77,16 @@ function StartHttpServer() {
             app.use(express_1.default.json());
             app.use((0, cors_1.default)());
             app.post("/play", (req, res) => __awaiter(this, void 0, void 0, function* () {
-                yield InstallMinecraft();
+                StartMinecraft();
                 res.status(200).send();
+            }));
+            app.post("/close", (req, res) => __awaiter(this, void 0, void 0, function* () {
+                res.status(200).send().addListener('finish', () => {
+                    logger.Info("Closing socket server");
+                    io.close();
+                    logger.Info("Closing http server");
+                    server.close();
+                });
             }));
             io.on('connection', (sock) => {
                 logger.Info(`new connection ${sock.id}`);
@@ -86,29 +103,135 @@ function StartHttpServer() {
 function GetClientConf() {
     return __awaiter(this, void 0, void 0, function* () {
         const [res, err] = yield (0, Utils_1.Get)("http://localhost:8080/api/client-conf", "json");
-        if (err)
-            throw err;
+        if (err) {
+            if ((0, fs_1.existsSync)(`${appdir}/${conf_json_1.default.dirs.mc_versions_files}/game.json`)) {
+                const buffer = (0, fs_1.readFileSync)(`${appdir}/${conf_json_1.default.dirs.mc_versions_files}/game.json`);
+                return JSON.parse(buffer.toString());
+            }
+            else {
+                logger.Error("Aucune configuration trouvé en offline");
+                throw new Error("Aucune version du jeu est installé en mode offline");
+            }
+        }
+        const resString = JSON.stringify(res);
+        const buffer = Buffer.from(resString);
+        (0, fs_1.writeFileSync)(`${appdir}/${conf_json_1.default.dirs.mc_versions_files}/game.json`, buffer);
         return res;
+    });
+}
+function GetMods() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const [res, err] = yield (0, Utils_1.Get)("http://localhost:8080/api/mods/list", "json");
+        if (err)
+            return undefined;
+        return res.client;
     });
 }
 function InstallMinecraft() {
     return __awaiter(this, void 0, void 0, function* () {
         const mcInstaller = new McInstaller_1.McInstaller();
+        const conf = yield GetClientConf();
+        const mcSize = conf.mc_size;
+        let mcAdvencement = 0;
+        mcInstaller.AddStepCallback((s) => {
+            mcAdvencement += s;
+            const advancement = mcAdvencement / mcSize;
+            const sizeMb = Math.floor((conf.mc_size / 1000000) * 10) / 10;
+            const advancementMb = Math.floor((mcAdvencement / 1000000) * 10) / 10;
+            const display = `${advancementMb} / ${sizeMb}Mb`;
+            const step = 0;
+            socket.emit('step', { display, advancement, total_step, step });
+        });
+        mcInstaller.SetSavedFilePath(`${appdir}/${conf_json_1.default.dirs.mc_versions_files}`);
+        yield mcInstaller.InstallVersion(conf.version, `${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}`, "windows");
+    });
+}
+function InstalForge() {
+    return __awaiter(this, void 0, void 0, function* () {
         const forgeInstaller = new McInstaller_1.ForgeInstaller();
         const conf = yield GetClientConf();
-        const size = yield mcInstaller.GetSize(conf.version, "windows");
-        let current = 0;
-        if (!(0, fs_1.existsSync)(`${luncher_conf_json_1.default.root}/${conf.name}`))
-            (0, fs_1.mkdirSync)(`${luncher_conf_json_1.default.root}/${conf.name}`);
-        mcInstaller.AddStepCallback((s) => {
-            current += s;
-            socket.emit('step', { current, size });
+        const forgeSize = conf.forge_size;
+        let forgeAdvencement = 0;
+        forgeInstaller.AddStepCallback((s, step) => {
+            if (step == "lib") {
+                const advancement = forgeAdvencement / forgeSize;
+                const sizeMb = Math.floor((forgeSize / 1000000) * 10) / 10;
+                const advancementMb = Math.floor((forgeAdvencement / 1000000) * 10) / 10;
+                const display = `${advancementMb} / ${sizeMb}Mb`;
+                const step = 1;
+                socket.emit('step', { display, advancement, total_step, step });
+            }
+            if (step == "processor") {
+                const advancement = s / conf.processors;
+                const display = `Processor : ${s} / ${conf.processors}`;
+                const step = 2;
+                socket.emit('step', { display, advancement, total_step, step });
+            }
         });
-        yield mcInstaller.InstallVersion(conf.version, `${luncher_conf_json_1.default.root}/${conf.name}`, "windows");
-        (0, core_1.launch)({ version: conf.version, gamePath: `${luncher_conf_json_1.default.root}/${conf.name}`, javaPath: "java" });
+        yield forgeInstaller.InstallVersion(conf.version, conf.forge, `${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}`);
+    });
+}
+function InstallMods() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const conf = yield GetClientConf();
+        const mods = yield GetMods();
+        const modsPath = `${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}/mods`;
+        if (!mods)
+            return;
+        yield (0, promises_1.rm)(modsPath, { recursive: true });
+        yield (0, promises_1.mkdir)(modsPath);
+        const modsEnable = mods.filter((mod) => mod.enable);
+        for (let i = 0; i < modsEnable.length; i++) {
+            const mod = modsEnable[i];
+            const display = `Mods: ${i} / ${modsEnable.length}`;
+            const advancement = i;
+            const step = 3;
+            yield (0, Utils_1.DownloadFile)(`http://localhost:8080/api/mods/download/${mod.name}`, modsPath, mod.name);
+            socket.emit('step', { display, advancement, total_step, step });
+        }
+    });
+}
+function LunchMinecraft() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const conf = yield GetClientConf();
+        const process = yield (0, core_1.launch)({ version: conf.fullname, gamePath: `${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}`, javaPath: "java" });
+        process.on("spawn", () => {
+            socket.emit("start");
+        });
+        process.stdout.on("data", (chunk) => {
+            const msg = chunk.toString().replace("\r\n", "");
+            logger.Print(msg);
+        });
+        process.on("exit", () => {
+            logger.Print("Closing backend");
+            io.disconnectSockets();
+            io.close();
+            server.closeAllConnections();
+            server.close();
+        });
+    });
+}
+function StartMinecraft() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const conf = yield GetClientConf();
+            if (!(0, fs_1.existsSync)(`${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}`))
+                (0, fs_1.mkdirSync)(`${appdir}/${conf_json_1.default.dirs.versions}/${conf.name}`);
+            yield InstallMinecraft();
+            yield InstalForge();
+            yield InstallMods();
+            yield LunchMinecraft();
+        }
+        catch (e) {
+            logger.Error(e);
+            if (e.stack)
+                logger.Error(e.stack);
+            socket.emit("backend-error", "Une erreur est survenue lors de l'installation :\r\n" + e + "\r\n" + e.stack);
+        }
     });
 }
 (() => __awaiter(void 0, void 0, void 0, function* () {
-    CreateVersionDirectory();
+    CreateAppDirectory();
+    ClearLog();
     yield StartHttpServer();
 }))();

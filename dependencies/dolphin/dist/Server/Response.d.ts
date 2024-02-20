@@ -13,7 +13,8 @@ export declare enum MediaType {
     EMPTY = 0,
     PLAIN_TEXT = 1,
     PLAIN_HTML = 2,
-    APPLICATION_JSON = 3
+    APPLICATION_JSON = 3,
+    FILE = 4
 }
 export declare class Response {
     readonly body: string;
@@ -28,4 +29,5 @@ export declare class Response {
     static Ok(): Response;
     static Json<T extends Record<string, any>>(body: T, code?: number): Response;
     static Text(text: string, code?: number): Response;
+    static File(path: string, filename?: string, code?: number): Response;
 }

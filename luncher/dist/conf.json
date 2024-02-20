@@ -1,0 +1,8 @@
+{
+    "root": "firefly-luncher",
+    "dirs": {
+        "logs": "logs",
+        "versions": "versions",
+        "mc_versions_files": "mc-versions-files"
+    }
+}

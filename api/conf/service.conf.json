@@ -24,6 +24,11 @@
         "port": 4004,
         "url": "http://localhost:4004/client-conf"
     },
+    "download": {
+        "ip": "localhost",
+        "port": 4005,
+        "url": "http://localhost:4005/download"
+    },
     "gateway": {
         "ip": "localhost",
         "port": 8080,

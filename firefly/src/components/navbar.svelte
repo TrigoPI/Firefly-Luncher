@@ -2,14 +2,25 @@
     import { faBars, faFile, faPlay, faServer, faTerminal, faXmark } from "@fortawesome/free-solid-svg-icons";
     import Fa from "svelte-fa";
     import NavItem from "./nav-item.svelte";
+    import { stateStore, type AppState } from "@lib/stores/state-store";
+
+    export let online: boolean;
 
     let isMenuOpen: boolean = true;
+    let hide: boolean = false;
     let itemSelected: string = "Luncher";
+
+    stateStore.subscribe((value: AppState) => {
+        if (value != "download") {
+            hide = false;
+        } else {
+            isMenuOpen = false;
+            hide = true;
+        }
+    });
 </script>
 
-
-
-{#if !isMenuOpen}    
+{#if !isMenuOpen && !hide}    
     <button 
         class="p-4 absolute z-50 text-2xl opacity-30 duration-150 hover:opacity-100 text-white"
         on:click={ () => isMenuOpen = true }
@@ -35,27 +46,29 @@
             selected={ itemSelected == "Luncher" }
             onClick={ name => itemSelected = name }
         />
-        <NavItem 
-            icon={ faServer }
-            text="Serveur"
-            route="/serveur"
-            selected={ itemSelected == "Serveur" }
-            onClick={ name => itemSelected = name }
-        />
-        <NavItem 
-            icon={ faTerminal } 
-            text="Console"
-            route="/console"
-            selected={ itemSelected == "Console" }
-            onClick={ name => itemSelected = name }
-        />
-        <NavItem 
-            icon={ faFile } 
-            text="Mods"
-            route="/mods"
-            selected={ itemSelected == "Mods" }
-            onClick={ name => itemSelected = name }
-        />
+        {#if online}
+            <NavItem 
+                icon={ faServer }
+                text="Serveur"
+                route="/serveur"
+                selected={ itemSelected == "Serveur" }
+                onClick={ name => itemSelected = name }
+            />
+            <NavItem 
+                icon={ faTerminal } 
+                text="Console"
+                route="/console"
+                selected={ itemSelected == "Console" }
+                onClick={ name => itemSelected = name }
+            />
+            <NavItem 
+                icon={ faFile } 
+                text="Mods"
+                route="/mods"
+                selected={ itemSelected == "Mods" }
+                onClick={ name => itemSelected = name }
+            />
+        {/if}
     </ul>
 </nav>
 

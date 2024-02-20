@@ -1,14 +1,16 @@
 <script lang="ts">
+    import { faDesktop, faGlobe, faPlus } from "@fortawesome/free-solid-svg-icons";
+    import { onMount } from "svelte";
     import Fa from "svelte-fa";
-    import ListItem from "./list-item.svelte"
-    import RestClient from "$lib/rest-client/RestClient";
     
     import { type Mod, type ModList } from "shared/types/minecraft";
 
-    import { onMount } from "svelte";
-    import { MODS_SERVICE } from "$lib/confs/routes";
-    import { faDesktop, faGlobe, faPlus } from "@fortawesome/free-solid-svg-icons";
+    import RestClient from "@lib/rest-client/RestClient";
+    import url from "@conf/url.json";
+
+    import ListItem from "./list-item.svelte";
     import ModMenu from "./mod-menu.svelte";
+    import { popupMessage } from "@lib/stores/popup-store";
 
     let isMenuOpen: boolean = false;
     let side: "client" | "server" = "client";
@@ -26,12 +28,12 @@
     }
 
     onMount(async () => {
-        const [response, error] = await RestClient.Get(`${MODS_SERVICE}/list`);
+        const [response, error] = await RestClient.Get(`${url.api}/mods/list`);
         
         if (error) {
-            console.log(error);
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${error}`, ...value]);
             return;
-        };
+        }
 
         const mods: ModList = response.Json<ModList>();
         clientMods = mods.client;

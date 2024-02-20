@@ -12,7 +12,32 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false
+      "process": {
+        "all": true
+      },
+      "shell": {
+        "all": true,
+        "execute": true, 
+        "sidecar": true,
+        "open": true,
+        "scope": [
+          {
+            "name": "node",
+            "cmd": "node.exe",
+            "args": true
+          }
+        ]
+      },
+      "fs": {
+        "all": true,
+        "scope": [
+          "$APPLOG",
+          "$APPLOG/*"
+        ]
+      },
+      "path": {
+        "all": true
+      }
     },
     "bundle": {
       "active": true,
@@ -29,7 +54,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.build",
+      "identifier": "firefly-luncher",
       "longDescription": "",
       "macOS": {
         "entitlements": null,

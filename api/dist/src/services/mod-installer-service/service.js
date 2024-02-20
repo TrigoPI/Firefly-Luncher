@@ -23,32 +23,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mcserver_conf_json_1 = __importDefault(require("../../../conf/mcserver.conf.json"));
 const service_conf_json_1 = __importDefault(require("../../../conf/service.conf.json"));
-const app_conf_json_1 = __importDefault(require("../../../conf/app.conf.json"));
 const fs_1 = require("fs");
 const promises_1 = require("fs/promises");
 const dolphin_1 = require("dolphin");
 let ModInstallerService = class ModInstallerService extends dolphin_1.ServiceClass {
     OnStart() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.modsPath = `${mcserver_conf_json_1.default.path}/mods`;
+            this.serverPath = `${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/${mcserver_conf_json_1.default.version}`;
+            this.modsPath = `${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/mods`;
             this.logger = new dolphin_1.Logger("mod-installer-service");
         });
     }
     GetMods() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield (0, promises_1.readdir)(this.modsPath);
+            return yield (0, promises_1.readdir)(`${this.serverPath}/mods`);
         });
     }
     OnServerStart(mods) {
         return __awaiter(this, void 0, void 0, function* () {
             const serverMods = yield this.GetMods();
             for (const modName of serverMods) {
-                yield (0, promises_1.rm)(`${this.modsPath}/${modName}`);
+                yield (0, promises_1.rm)(`${this.serverPath}/mods/${modName}`);
             }
             for (const mod of mods) {
                 const modName = `${mod.name.replace(".jar", "")}-server-enable.jar`;
-                if ((0, fs_1.existsSync)(`${app_conf_json_1.default.app_path}/mods/${modName}`)) {
-                    yield (0, promises_1.copyFile)(`${app_conf_json_1.default.app_path}/mods/${modName}`, `${this.modsPath}/${mod.name}`);
+                if ((0, fs_1.existsSync)(`${this.modsPath}/${modName}`)) {
+                    yield (0, promises_1.copyFile)(`${this.modsPath}/${modName}`, `${this.serverPath}/mods/${mod.name}`);
                 }
                 else {
                     this.logger.Warning(`Cannot find mod ${modName}`);

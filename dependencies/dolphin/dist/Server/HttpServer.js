@@ -239,6 +239,12 @@ class HttpServer {
                     case Response_1.MediaType.APPLICATION_JSON:
                         res.status(response.code).json(JSON.parse(response.body));
                         break;
+                    case Response_1.MediaType.FILE:
+                        const json = JSON.parse(response.body);
+                        const pathSplit = json.path.replace(/\\/g, "/").split("/");
+                        const filename = (json.filename.length > 0) ? json.filename : pathSplit[pathSplit.length - 1];
+                        res.status(response.code).download(json.path, filename);
+                        break;
                 }
             }
             catch (err) {

@@ -22,9 +22,13 @@ export default class McServerService extends ServiceClass {
     private serverLogRef: DatabaseReference;
     private cmdId: number;
 
+    private serverPath: string;
+
     public override async OnStart(): Promise<void> {
+        this.serverPath = `${mcServerConf.path}/${mcServerConf.name}/${mcServerConf.version}`;
+
         this.cmdId = 0;
-        this.mcServer = new McServer(mcServerConf.path, mcServerConf.name, mcServerConf.version);
+        this.mcServer = new McServer(this.serverPath, mcServerConf.name, mcServerConf.version);
         this.mcServer.SetCustomStartCommand(mcServerConf.cmd);
         this.mcServer.AddEventListener(e => this.OnMcServerEvent(e));
 

@@ -1,11 +1,14 @@
 <script lang="ts">
-    import Fa from "svelte-fa";
-    import Checkbox from "@components/checkbox.svelte";
-    import RestClient from "$lib/rest-client/RestClient";
     import { faXmark, faPlus, faCheck, faDesktop, faGlobe, faUpload } from "@fortawesome/free-solid-svg-icons"
-    import { API_URL, MODS_SERVICE, UPLOAD_SERVICE } from "$lib/confs/routes";
+    import Fa from "svelte-fa";
     import Dropzone from "svelte-file-dropzone";
+    
     import type { ModList } from "shared/types/minecraft";
+    
+    import url from "@conf/url.json";
+    import Checkbox from "@components/checkbox.svelte";
+    import RestClient from "@lib/rest-client/RestClient";
+    import { popupMessage } from "@lib/stores/popup-store";
     
     export let onModsAdded: (mods: ModList) => void;
     export let isOpen: boolean;
@@ -35,8 +38,12 @@
 
         for (const file of files) datas.append("jar", file, file.name);
 
-        const [res, err] = await RestClient.PostForm(`${API_URL}/mods/add`, datas);    
-        if (err) return;
+        const [res, err] = await RestClient.PostForm(`${url.api}/mods/add`, datas);  
+          
+        if (err) {
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+            return;
+        }
 
         fileState = "idle";
         files = [];

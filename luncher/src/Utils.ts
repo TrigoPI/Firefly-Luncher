@@ -30,6 +30,10 @@ export async function DownloadFile(url: string, outDir: string, filename: string
     await writeFile(`${outDir}/${filename}`, new Uint8Array(buffer));
 }
 
+export function GetAppData(): string {
+    return process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+}
+
 export function CreateFolderIfNotExist(path: string): void {
     mkdirSync(path, { recursive: true });
 }

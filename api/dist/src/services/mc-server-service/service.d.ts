@@ -4,6 +4,7 @@ export default class McServerService extends ServiceClass {
     private serverStateRef;
     private serverLogRef;
     private cmdId;
+    private serverPath;
     OnStart(): Promise<void>;
     private ServerStateToString;
     private AuthToFirebase;

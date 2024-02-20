@@ -1,5 +1,6 @@
 **/node_modules
 **/build
+**/firebase.json
 **/firebase.conf.json
-**/firebase.ts
+**/firebaseConfig.ts
 **/versions

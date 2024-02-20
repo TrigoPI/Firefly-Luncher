@@ -4,15 +4,17 @@ export declare class McInstaller {
     private versionManifestUrl;
     private manifest;
     private versionInfoCache;
+    private savedFilePath;
     private stepCallback;
     private logger;
     constructor();
+    SetSavedFilePath(path: string): void;
     InstallVersion(mcVersion: string, root: string, os: OsName): Promise<void>;
     AddStepCallback(cb: (size: number) => void): void;
     GetManifest(): Promise<Minecraft.VersionManifest>;
     GetVersion(mcVerison: string): Promise<Minecraft.Version>;
     GetVersionInfo(mcVersion: string): Promise<Minecraft.VersionInfo>;
-    GetAssets(mcVerison: string): Promise<Minecraft.Assets>;
+    GetAssets(mcVersion: string): Promise<Minecraft.Assets>;
     GetSize(mcVerison: string, os: OsName): Promise<number>;
     private DownloadJar;
     private DownloadLibraries;
@@ -28,11 +30,14 @@ export declare class ForgeInstaller {
     private versionsCache;
     private logger;
     private mcInstaller;
+    private stepCallback;
     constructor();
     InstallVersion(mcVersion: string, forgeVersion: string, root: string): Promise<void>;
+    AddStepCallback(cb: (size: number, name: string) => void): void;
     GetVersion(mcVersion: string): Promise<Forge.Version[]>;
     GetLatestForgeVersion(mcVersion: string): Promise<Forge.Version>;
     GetForgeVersion(mcVersion: string, forgeVersion: string): Promise<Forge.Version>;
+    GetSize(mcVersion: string, forgeVersion: string): Promise<number>;
     private DownloadJar;
     private UnpackForgeJar;
     private CreateVersion;
@@ -54,4 +59,5 @@ export declare class ForgeInstaller {
     private IsMinecraftVersionInstalled;
     private IsForgeAlreadyInstalled;
     private CopyForgeLibFromInstaller;
+    private ExecuteCallback;
 }

@@ -13,4 +13,8 @@ export type ClientConf = {
     version: string;
     name: string;
     forge: string;
+    fullname: string;
+    forge_size: number;
+    mc_size: number;
+    processors: number;
 };

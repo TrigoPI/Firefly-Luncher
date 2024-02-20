@@ -19,7 +19,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var Main_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-const app_conf_json_1 = __importDefault(require("../conf/app.conf.json"));
+const mcserver_conf_json_1 = __importDefault(require("../conf/mcserver.conf.json"));
 const path_1 = __importDefault(require("path"));
 const dolphin_1 = require("dolphin");
 const fs_1 = require("fs");
@@ -35,8 +35,8 @@ let Main = Main_1 = class Main {
     }
     CreateAppFolder() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!(0, fs_1.existsSync)(`${app_conf_json_1.default.app_path}/mods`))
-                yield (0, promises_1.mkdir)(`${app_conf_json_1.default.app_path}/mods`);
+            if (!(0, fs_1.existsSync)(`${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/mods`))
+                yield (0, promises_1.mkdir)(`${mcserver_conf_json_1.default.path}/${mcserver_conf_json_1.default.name}/mods`, { recursive: true });
         });
     }
     static CreateApplication() {

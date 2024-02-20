@@ -1,4 +1,4 @@
-import serverConf from "../../../conf/app.conf.json"
+import serverConf from "../../../conf/mcserver.conf.json"
 import serviceConf from "../../../conf/service.conf.json";
 
 import { Mod } from "shared/types/minecraft";
@@ -10,7 +10,7 @@ export default class UploadModService extends ServiceClass {
     private modsPath: string;
 
     public override async OnStart(): Promise<void> {
-        this.modsPath = serverConf.app_path + "/mods";
+        this.modsPath = `${serverConf.path}/${serverConf.name}/mods`;
     }
 
     private GetFile(mod: any[], name: string): any | undefined {

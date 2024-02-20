@@ -28,6 +28,19 @@ let GatewayService = class GatewayService extends dolphin_1.ServiceClass {
     GetMod(mod, name) {
         return mod.find((value) => value.name == name);
     }
+    OnPing() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return dolphin_1.Response.Ok();
+        });
+    }
+    OnGetModsList() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [res, err] = yield rest_client_1.RestClient.Get(`${service_conf_json_1.default.mods_service.url}/list`);
+            if (err)
+                return new dolphin_1.Response(err.body, dolphin_1.MediaType.PLAIN_HTML, err.code);
+            return dolphin_1.Response.Json(res.Json());
+        });
+    }
     OnGetClientConf() {
         return __awaiter(this, void 0, void 0, function* () {
             const [res, err] = yield rest_client_1.RestClient.Get(service_conf_json_1.default.client_conf.url);
@@ -50,6 +63,15 @@ let GatewayService = class GatewayService extends dolphin_1.ServiceClass {
             if (err)
                 return new dolphin_1.Response(err.body, dolphin_1.MediaType.PLAIN_HTML, err.code);
             return dolphin_1.Response.Json(res.Json());
+        });
+    }
+    OnDownloadMod(mod_name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [res, err] = yield rest_client_1.RestClient.Get(`${service_conf_json_1.default.download.url}/${mod_name}`);
+            if (err)
+                return new dolphin_1.Response(err.body, dolphin_1.MediaType.PLAIN_HTML, err.code);
+            const json = res.Json();
+            return dolphin_1.Response.File(json.path, json.filename);
         });
     }
     OnServerCommand(cmd) {
@@ -128,6 +150,14 @@ let GatewayService = class GatewayService extends dolphin_1.ServiceClass {
 };
 __decorate([
     dolphin_1.Get,
+    (0, dolphin_1.Route)("/ping")
+], GatewayService.prototype, "OnPing", null);
+__decorate([
+    dolphin_1.Get,
+    (0, dolphin_1.Route)("/mods/list")
+], GatewayService.prototype, "OnGetModsList", null);
+__decorate([
+    dolphin_1.Get,
     (0, dolphin_1.Route)("/client-conf")
 ], GatewayService.prototype, "OnGetClientConf", null);
 __decorate([
@@ -138,6 +168,11 @@ __decorate([
     dolphin_1.Get,
     (0, dolphin_1.Route)("/server/buffer")
 ], GatewayService.prototype, "OnGetBuffer", null);
+__decorate([
+    dolphin_1.Get,
+    (0, dolphin_1.Route)("/mods/download/:mod_name"),
+    __param(0, (0, dolphin_1.WebString)("mod_name"))
+], GatewayService.prototype, "OnDownloadMod", null);
 __decorate([
     dolphin_1.Post,
     (0, dolphin_1.Route)("/server/command"),

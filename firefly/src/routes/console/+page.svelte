@@ -1,12 +1,13 @@
 <script lang="ts">
     import Fa from "svelte-fa";
-    import RestClient from "$lib/rest-client/RestClient";
+    import RestClient from "@lib/rest-client/RestClient";
 
-    import { API_URL } from "$lib/confs/routes";
+    import url from "@conf/url.json";
     import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
     import { DataSnapshot, onChildAdded, onValue } from "firebase/database";
-    import { Firebase } from "$lib/confs/firebase";
+    import { Firebase } from "@lib/utils/firebase";
     import { tick } from "svelte";
+    import { popupMessage } from "@lib/stores/popup-store";
 
     let buffer: string[] = [];
     let input: HTMLInputElement;
@@ -27,11 +28,25 @@
             case "clear":
                 buffer = []
                 break;
+
             default: 
+                const [_, err] = await RestClient.Post(`${url.api}/server/command`, { cmd });
+                
+                if (err) {
+                    if (err.code == 401) {
+                        popupMessage.update((value: string[]) => [ `Le serveur n'est pas démarré`, ...value]);
+                        break;
+                    }
+                    
+                    popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+                    break;
+                }
+            
                 buffer = [ ...buffer, cmd ];    
+                
                 await tick();
-                await RestClient.Post(`${API_URL}/server/command`, { cmd });
                 scrollToBottom(consoleElement);
+
                 break;
         }
     }

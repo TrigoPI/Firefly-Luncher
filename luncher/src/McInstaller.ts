@@ -1,11 +1,13 @@
+import appConf from "../conf.json"
+
 import StreamZip, { StreamZipAsync } from "node-stream-zip";
-import { readFile, writeFile } from "fs/promises";
-import { copyFileSync, existsSync, readdirSync } from "fs";
+import { mkdir, readFile, rm, rmdir, writeFile } from "fs/promises";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync } from "fs";
 import { ForgeWebPage, parse } from "@xmcl/forge-site-parser";
 
 import { FORGE, MACRO, MINECRAFT_URL } from "./InstallerConf";
 import { Arch, ClassifierOs, Forge, Minecraft, NativeOsName, OsName } from "./Types";
-import { CreateFolderIfNotExist, DownloadFile, Get } from "./Utils";
+import { CreateFolderIfNotExist, DownloadFile, Get, GetAppData } from "./Utils";
 import Logger from "./Logger";
 import { spawn } from "child_process";
 
@@ -15,6 +17,8 @@ export class McInstaller {
     private manifest: Minecraft.VersionManifest;
     private versionInfoCache: Record<string, Minecraft.VersionInfo>;
 
+    private savedFilePath: string | undefined;
+
     private stepCallback: (size: number) => void;
 
     private logger: Logger;
@@ -22,14 +26,21 @@ export class McInstaller {
     public constructor() {
         this.logger = new Logger(McInstaller.name);
 
+        this.logger.SetLogPath(`${GetAppData()}/${appConf.root}/${appConf.dirs.logs}/log.txt`);
+        this.logger.WriteLog(true);
+
         this.versionManifestUrl = MINECRAFT_URL.MANIFEST;
         this.assetsUrl = MINECRAFT_URL.ASSET;
         this.versionInfoCache = {};
+    
+        this.savedFilePath = undefined;
+    }
+
+    public SetSavedFilePath(path: string): void {
+        this.savedFilePath = path;
     }
 
     public async InstallVersion(mcVersion: string, root: string, os: OsName): Promise<void> {
-        console.clear();
-
         const path: string = root.replace(/\//g, "/");
         
         await this.DownloadJar(mcVersion, path);
@@ -44,9 +55,26 @@ export class McInstaller {
 
     public async GetManifest(): Promise<Minecraft.VersionManifest> {
         if (!this.manifest) {
-            const [res, err] = await Get<Minecraft.VersionManifest>(this.versionManifestUrl, "json");
-            if (err) throw err;
-            this.manifest = res;
+            if (this.savedFilePath) {
+                if (existsSync(`${this.savedFilePath}/version_manifest_v2.json`)) {
+                    const buffer: Buffer = readFileSync(`${this.savedFilePath}/version_manifest_v2.json`);
+                    this.manifest = JSON.parse(buffer.toString());
+                } else {
+                    const [res, err] = await Get<Minecraft.VersionManifest>(this.versionManifestUrl, "json");
+                    if (err) throw err;
+                    
+                    const manifestStringString: string = JSON.stringify(res);
+                    const buffer: Buffer = Buffer.from(manifestStringString);
+                    
+                    appendFileSync(`${this.savedFilePath}/version_manifest_v2.json`, buffer);
+                    this.manifest = res;
+                }
+            } else {
+                const [res, err] = await Get<Minecraft.VersionManifest>(this.versionManifestUrl, "json");
+                if (err) throw err;                
+                this.manifest = res;
+            }
+
         }
 
         return this.manifest;
@@ -55,21 +83,62 @@ export class McInstaller {
     public async GetVersion(mcVerison: string): Promise<Minecraft.Version> {
         const versionManifest: Minecraft.VersionManifest = await this.GetManifest();
         const verison: Minecraft.Version | undefined = versionManifest.versions.find((el: Minecraft.Version) => el.id == mcVerison);
-        if (!verison) throw new Error(`Cannot find mincraft version ${mcVerison}`);
+        if (!verison) throw new Error(`Cannot find minecraft version ${mcVerison}`);
         return verison;
     }
 
     public async GetVersionInfo(mcVersion: string): Promise<Minecraft.VersionInfo> {
         if (this.versionInfoCache[mcVersion]) return this.versionInfoCache[mcVersion];
+        
         const version: Minecraft.Version = await this.GetVersion(mcVersion);
-        const [res, err] = await Get<Minecraft.VersionInfo>(version.url, "json");
-        if (err) throw err;
-        this.versionInfoCache[mcVersion] = res;
+
+        if (this.savedFilePath) {
+            if (existsSync(`${this.savedFilePath}/${mcVersion}/${mcVersion}.json`)) {
+                const buffer: Buffer = readFileSync(`${this.savedFilePath}/${mcVersion}/${mcVersion}.json`);
+                this.versionInfoCache[mcVersion] = JSON.parse(buffer.toString());
+            } else {
+                const [res, err] = await Get<Minecraft.VersionInfo>(version.url, "json");
+                if (err) throw err;
+
+                const infoString: string = JSON.stringify(res);
+                const buffer: Buffer = Buffer.from(infoString);
+                
+                mkdirSync(`${this.savedFilePath}/${mcVersion}`, { recursive: true });
+                appendFileSync(`${this.savedFilePath}/${mcVersion}/${mcVersion}.json`, buffer);
+
+                this.versionInfoCache[mcVersion] = res;
+            }
+        } else {
+            const [res, err] = await Get<Minecraft.VersionInfo>(version.url, "json");
+            if (err) throw err;
+            this.versionInfoCache[mcVersion] = res;
+        }
+
         return this.versionInfoCache[mcVersion];
     }
 
-    public async GetAssets(mcVerison: string): Promise<Minecraft.Assets> {
-        const versionInfo: Minecraft.VersionInfo = await this.GetVersionInfo(mcVerison);
+    public async GetAssets(mcVersion: string): Promise<Minecraft.Assets> {
+        const versionInfo: Minecraft.VersionInfo = await this.GetVersionInfo(mcVersion);
+        const id: string = versionInfo.assetIndex.id;
+
+        if (this.savedFilePath) {
+            if (existsSync(`${this.savedFilePath}/${mcVersion}/${id}.json`)) {
+                const buffer: Buffer = readFileSync(`${this.savedFilePath}/${mcVersion}/${id}.json`);
+                return JSON.parse(buffer.toString());
+            } else {
+                const [assets, err] = await Get<Minecraft.Assets>(versionInfo.assetIndex.url, "json");
+                if (err) throw err;
+
+                const assetString: string = JSON.stringify(assets);
+                const buffer: Buffer = Buffer.from(assetString);
+                
+                mkdirSync(`${this.savedFilePath}/${mcVersion}`, { recursive: true });
+                appendFileSync(`${this.savedFilePath}/${mcVersion}/${id}.json`, buffer);
+
+                return assets;
+            }
+        }
+
         const [assets, err] = await Get<Minecraft.Assets>(versionInfo.assetIndex.url, "json");
         if (err) throw err;
         return assets;
@@ -80,7 +149,7 @@ export class McInstaller {
 
         const versionInfo: Minecraft.VersionInfo = await this.GetVersionInfo(mcVerison);
         const assets: Minecraft.Assets = await this.GetAssets(mcVerison);
-        
+
         total += versionInfo.downloads.client.size;
 
         for (const lib of versionInfo.libraries) {
@@ -269,6 +338,8 @@ export class ForgeInstaller {
     private logger: Logger;
     private mcInstaller: McInstaller;
 
+    private stepCallback: (size: number, name: string) => void;
+
     public constructor() {
         this.logger = new Logger(ForgeInstaller.name);
         this.mcInstaller = new McInstaller();
@@ -283,6 +354,10 @@ export class ForgeInstaller {
         await this.CreateVersion(mcVersion, forgeVersion, root);
         await this.InstallLibraries(root);
         await this.StartProcessor(root);
+    }
+
+    public AddStepCallback(cb: (size: number, name: string) => void): void {
+        this.stepCallback = cb;
     }
 
     public async GetVersion(mcVersion: string): Promise<Forge.Version[]> {
@@ -309,18 +384,36 @@ export class ForgeInstaller {
         return version;
     }
 
+    public async GetSize(mcVersion: string, forgeVersion: string): Promise<number> {        
+        await this.DownloadJar(mcVersion, forgeVersion, ".");
+        await this.UnpackForgeJar(mcVersion, forgeVersion, ".");
+
+        const installProfile: Forge.InstallProfile = await this.GetInstallProfile(".");
+        const versionJson: Forge.VersionJson = await this.GetVersionJson(".");
+
+        let size: number = 0;
+
+        for (const lib of installProfile.libraries) size += lib.downloads.artifact.size;
+        for (const lib of versionJson.libraries) size += lib.downloads.artifact.size;
+
+        await rm("./tmp", { recursive: true });
+
+        return size;
+    }
+
     private async DownloadJar(mcVersion: string, forgeVersion: string, path: string): Promise<void> {
-        this.logger.Print("Downloading minecraft forge installer...");
-
-        const latestForgeVersion: Forge.Version = await this.GetForgeVersion(mcVersion, forgeVersion);
-        const installerName: string = `forge-${mcVersion}-${latestForgeVersion.version}`;
-
-        if (!latestForgeVersion.installer) throw new Error(`No installer for forge ${latestForgeVersion.version}`);
-        
-        if (this.IsForgeAlreadyInstalled(path, latestForgeVersion)) {
+        if (this.IsForgeAlreadyInstalled(path, mcVersion, forgeVersion)) {
             this.logger.Info("Forge already installed");
             return;
         }
+        
+        this.logger.Print("Downloading minecraft forge installer...");
+
+        const latestForgeVersion: Forge.Version = await this.GetForgeVersion(mcVersion, forgeVersion);
+        const installerName: string = `forge-${mcVersion}-${forgeVersion}`;
+
+        if (!latestForgeVersion.installer) throw new Error(`No installer for forge ${latestForgeVersion.version}`);
+        
 
         if (existsSync(`${path}/${FORGE.TMP}/${installerName}.zip`)) {
             this.logger.Info("Installer already exist");
@@ -374,6 +467,8 @@ export class ForgeInstaller {
             } else {
                 this.logger.Info(`Cache hit for ${name}`);
             }
+
+            this.ExecuteCallback(library.downloads.artifact.size, "lib");
         }        
 
         this.CopyForgeLibFromInstaller(path);
@@ -383,6 +478,8 @@ export class ForgeInstaller {
         this.logger.Info("Starting install process");
 
         const forgeFiles: Forge.LoaderData = await this.GetForgeFiles(path);
+        const total: number = forgeFiles.install_profile.processors.length;
+        let step: number = 0;
 
         for (const processor of forgeFiles.install_profile.processors) {
             let canContinue: boolean = true;
@@ -404,6 +501,8 @@ export class ForgeInstaller {
                     const args: string[] = await this.MixArgs(path, processor);
                     await this.RunProcess(args);
                 }
+
+                this.ExecuteCallback(step++, "processor");
             }
         }
     }
@@ -622,8 +721,8 @@ export class ForgeInstaller {
         return existsSync(`${path}/versions/${mcVerison}/${mcVerison}.jar`);
     }
 
-    private IsForgeAlreadyInstalled(path: string, version: Forge.Version): boolean {
-        const name: string = `${version.mcversion}-forge-${version.version}`;
+    private IsForgeAlreadyInstalled(path: string, mcVersion: string, forgeVersion: string): boolean {
+        const name: string = `${mcVersion}-forge-${forgeVersion}`;
         return existsSync(`${path}/versions/${name}/${name}.json`);
     }
 
@@ -640,5 +739,9 @@ export class ForgeInstaller {
             this.logger.Print(`Copying ${jarFiles} to ${path}/libraries/net/minecraftforge/forge/${version}`);
             copyFileSync(`${forgeLibPath}/${version}/${jar}`, `${path}/libraries/net/minecraftforge/forge/${version}/${jar}`);
         }
+    }
+
+    private ExecuteCallback(size: number, name: string): void {
+        if (this.stepCallback) this.stepCallback(size, name);
     }
 }

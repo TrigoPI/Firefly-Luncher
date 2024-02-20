@@ -1,24 +1,35 @@
 <script lang="ts">
-    import RestClient from "$lib/rest-client/RestClient";
+    import RestClient from "@lib/rest-client/RestClient";
     import Fa from "svelte-fa";
 
     import { type Mod } from "shared/types/minecraft";
 
-    import { API_URL } from "$lib/confs/routes";
+    import url from "@conf/url.json";
     import { faEye, faEyeSlash, faTrash } from "@fortawesome/free-solid-svg-icons";
+    import { popupMessage } from "@lib/stores/popup-store";
 
     export let mod: Mod;
     export let onModDeleted: (mod: Mod) => void;
 
     const handleModDisabled = async (): Promise<void> => {
-        const [_, err] = await RestClient.Post(`${API_URL}/mod/${!mod.enable? "enable" : "disable"}/${mod.side}/${mod.name}`); 
-        if (err) return;
+        const [_, err] = await RestClient.Post(`${url.api}/mod/${!mod.enable? "enable" : "disable"}/${mod.side}/${mod.name}`); 
+        
+        if (err) {
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+            return;
+        }
+        
         mod.enable = !mod.enable;
     }
 
     const handleModRemoved = async (): Promise<void> => {
-        const [_, err] = await RestClient.Post(`${API_URL}/mod/delete/${mod.side}/${mod.name}`);
-        if (err) return;
+        const [_, err] = await RestClient.Post(`${url.api}/mod/delete/${mod.side}/${mod.name}`);
+
+        if (err) {
+            popupMessage.update((value: string[]) => [ `Une erreur est survenue : \r\n${err}`, ...value]);
+            return;
+        }
+
         onModDeleted(mod);
     }
 </script>
