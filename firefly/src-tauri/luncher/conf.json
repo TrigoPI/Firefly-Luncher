@@ -1,0 +1,7 @@
+{
+    "root": "firefly-luncher",
+    "dirs": {
+        "logs": "logs",
+        "versions": "versions"
+    }
+}

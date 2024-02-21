@@ -2,9 +2,8 @@
     "compilerOptions": {
         "experimentalDecorators": true,
         "esModuleInterop": true,
-        "declaration": true,
         "resolveJsonModule": true,
-        "moduleResolution": "node",
+        "moduleResolution": "Node",
         "module": "CommonJS",
         "target": "ES6",
         "outDir": "dist",

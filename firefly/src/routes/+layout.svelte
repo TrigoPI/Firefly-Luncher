@@ -16,6 +16,7 @@
     import Popup from "@components/popup.svelte";
     import { popupMessage } from "@lib/stores/popup-store";
     import { stateStore, type AppState } from "@lib/stores/state-store";
+    import Ressources from "@lib/utils/ressources";
 
     let state: number = 0b0001;
     let appState: AppState = "idle";
@@ -86,6 +87,10 @@
         state = state & 0b1110;
     }
 
+    const initRessources = async (): Promise<void> => {
+        await Ressources.Init();
+    }
+
     const runBackend = async (): Promise<void> => {
         await Tauri.LunchBackend();
     }
@@ -115,11 +120,12 @@
         initSocket();
         initFirebase();
 
+        await initRessources();
         await runBackend();
+
         await connectToSocket();
         await pingAPI();
         await connectToFirebase();
-
     });
 
     stateStore.subscribe((value: AppState) => appState = value);

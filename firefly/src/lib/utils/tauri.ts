@@ -1,9 +1,8 @@
-import app from "@conf/app.json";
-
 import dateFormat from 'dateformat';
 import { createDir, exists, writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
 import { exit } from '@tauri-apps/api/process';
-import { Command } from "@tauri-apps/api/shell";
+import { Command, Child } from "@tauri-apps/api/shell";
+import Ressources from './ressources';
 
 export class Tauri {
     public static async WriteLog(file: string, content: string): Promise<void> {
@@ -18,9 +17,9 @@ export class Tauri {
     }
 
     public static async LunchBackend(): Promise<void> {
-        const command: Command = new Command(`node`, [`${app.backend}/index.js`]);
-        command.stdout.on('data', line => Tauri.WriteLog("log.txt", line));
+        const command: Command = Command.sidecar("bin/node", [Ressources.LUNCHER]);
         await command.spawn();
+        command.stderr.on("data", (line: string) => console.log(line));
     }
 
     public static async CloseApp(): Promise<void> {

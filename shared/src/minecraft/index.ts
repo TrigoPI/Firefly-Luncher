@@ -17,7 +17,4 @@ export type ClientConf = {
     name: string
     forge: string
     fullname: string
-    forge_size: number,
-    mc_size: number,
-    processors: number
 }

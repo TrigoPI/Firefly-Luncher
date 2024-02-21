@@ -22,9 +22,9 @@
         "open": true,
         "scope": [
           {
-            "name": "node",
-            "cmd": "node.exe",
-            "args": true
+            "name": "bin/node",
+            "args": true,
+            "sidecar": true
           }
         ]
       },
@@ -46,7 +46,12 @@
       "deb": {
         "depends": []
       },
-      "externalBin": [],
+      "externalBin": [
+        "bin/node"
+      ],
+      "resources": [
+        "luncher/*"
+      ],
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -63,7 +68,6 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": [],
       "shortDescription": "",
       "targets": "all",
       "windows": {
